@@ -7,7 +7,7 @@ import shutil
 from public_data_reader import FIVE,public_constant
 
 PUBLIC_FILES=('index.html','sorctracks_tool.html','robots.txt')
-OPTIONAL_PUBLIC_FILES=('sorctracks_normal_entry_qa.html',)
+OPTIONAL_PUBLIC_FILES=('sorctracks_normal_entry_qa.html','sorctracks_normal_entry_qa_v2.html')
 
 def package(source,destination):
     source=source.resolve();destination=destination.absolute()
