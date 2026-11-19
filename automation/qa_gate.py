@@ -7,6 +7,7 @@ import shutil
 from public_data_reader import FIVE,public_constant
 
 PUBLIC_FILES=('index.html','sorctracks_tool.html','robots.txt')
+OPTIONAL_PUBLIC_FILES=('sorctracks_normal_entry_qa.html',)
 
 def package(source,destination):
     source=source.resolve();destination=destination.absolute()
@@ -15,7 +16,8 @@ def package(source,destination):
     if (source/'CNAME').exists():
         raise ValueError('Rehearsal must not bind a custom domain')
     raw={}
-    for name in PUBLIC_FILES:
+    selected=PUBLIC_FILES+tuple(name for name in OPTIONAL_PUBLIC_FILES if (source/name).exists() or (source/name).is_symlink())
+    for name in selected:
         path=source/name
         if path.is_symlink() or not path.is_file():
             raise ValueError('Public input is missing or not a regular file')
@@ -27,6 +29,16 @@ def package(source,destination):
     for key in FIVE:
         if type(public_constant(text,key)) is not dict:
             raise ValueError('Invalid aggregate object')
+    for name in OPTIONAL_PUBLIC_FILES:
+        if name not in raw:
+            continue
+        body=raw[name]
+        if not 1<=len(body)<=16*1024*1024:
+            raise ValueError('Optional aggregate size is outside bound')
+        optional_text=body.decode('utf-8')
+        for key in FIVE:
+            if type(public_constant(optional_text,key)) is not dict:
+                raise ValueError('Invalid optional aggregate object')
     if b'Isolated publication rehearsal' not in raw['index.html']:
         raise ValueError('Rehearsal label is missing')
     if raw['robots.txt']!=b'User-agent: *\nDisallow: /\n':
@@ -38,10 +50,10 @@ def package(source,destination):
         (destination/name).write_bytes(body)
         if (destination/name).read_bytes()!=body:
             raise ValueError('Artifact changed public bytes')
-    if set(p.name for p in destination.iterdir())!=set(PUBLIC_FILES):
+    if set(p.name for p in destination.iterdir())!=set(selected):
         raise ValueError('Unexpected artifact member')
     return {'aggregate_sha256':hashlib.sha256(html).hexdigest(),
-            'aggregate_bytes':len(html),'artifact_files':list(PUBLIC_FILES),
+            'aggregate_bytes':len(html),'artifact_files':list(selected),
             'scope':'PUBLIC_STRUCTURE_AND_EXACT_BYTES_NOT_SOURCE_ACCURACY'}
 
 if __name__=='__main__':
